@@ -1,0 +1,6 @@
+clear_camera_cache:
+  name: Clear Camera Cache
+  description: Clears the cache for RWIS cameras
+  target:
+    entity:
+      domain: camera

@@ -1,0 +1,10 @@
+{
+    "domain": "mdt_rwis",
+    "name": "Montana DOT RWIS",
+    "config_flow": true,
+    "documentation": "",
+    "requirements": ["aiohttp"],
+    "dependencies": [],
+    "codeowners": [],
+    "version": "1.0.0"
+}

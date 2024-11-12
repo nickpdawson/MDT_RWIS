@@ -1,0 +1,22 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Montana DOT RWIS",
+                "description": "Set up Montana DOT Road Weather Information System. Enter your API key.",
+                "data": {
+                    "api_key": "API Key",
+                    "update_interval": "Update Interval (minutes)"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to API. Please verify your API key and internet connection.",
+            "invalid_auth": "Invalid API key",
+            "unknown": "Unexpected error"
+        },
+        "abort": {
+            "already_configured": "MDT RWIS is already configured"
+        }
+    }
+}
