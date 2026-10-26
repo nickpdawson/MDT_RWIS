@@ -1,113 +1,78 @@
 """The MDT RWIS integration."""
+
 from __future__ import annotations
-from datetime import timedelta
+
 import logging
 
-import aiohttp
-import async_timeout
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
-from .const import (
-    DOMAIN,
-    CONF_SITE_ID,
-    CONF_UPDATE_INTERVAL,
-    DEFAULT_UPDATE_INTERVAL,
-    API_SITE_DATA,  # Replaced API_CURRENT_CONDITIONS
-    API_SITE_IMAGES,  # Corrected to API_SITE_IMAGES
-    API_HEADERS,
-)
+from .const import DOMAIN
+from .coordinator import MdtRwisConfigEntry, MdtRwisCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [
-    Platform.SENSOR,
-    Platform.CAMERA,  
-]
+PLATFORMS = [Platform.SENSOR, Platform.CAMERA]
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the MDT RWIS component."""
-    hass.data.setdefault(DOMAIN, {})
-    return True
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: MdtRwisConfigEntry) -> bool:
     """Set up MDT RWIS from a config entry."""
-    api_key = entry.data[CONF_API_KEY]
-    site_id = entry.data[CONF_SITE_ID]
-    update_interval = entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL)
-    session = async_get_clientsession(hass)
-
-    async def async_update_data():
-        """Fetch data from API for the selected site."""
-        try:
-            async with async_timeout.timeout(10):
-                # Use formatted URLs with dynamic substitution
-                weather_url = API_SITE_DATA.format(site_id=site_id, api_key=api_key)
-                camera_url = API_SITE_IMAGES.format(site_id=site_id, api_key=api_key)
-                
-                # Fetch weather data
-                _LOGGER.debug("Fetching weather data from %s", weather_url)
-                async with session.get(weather_url, headers=API_HEADERS) as resp:
-                    if resp.status != 200:
-                        text = await resp.text()
-                        _LOGGER.error("Weather data fetch failed: %s - %s", resp.status, text)
-                        raise UpdateFailed(f"Error fetching weather data: {resp.status}")
-                    
-                    weather_data = await resp.json()
-                    _LOGGER.debug("Weather data received: %s", weather_data)
-
-                # Fetch camera data
-                _LOGGER.debug("Fetching camera data from %s", camera_url)
-                async with session.get(camera_url, headers=API_HEADERS) as resp:
-                    if resp.status != 200:
-                        text = await resp.text()
-                        _LOGGER.error("Camera data fetch failed: %s - %s", resp.status, text)
-                        raise UpdateFailed(f"Error fetching camera data: {resp.status}")
-                    
-                    camera_data = await resp.json()
-                    _LOGGER.debug("Camera data received: %s", camera_data)
-
-                return {
-                    "weather": weather_data,
-                    "cameras": camera_data,
-                }
-        except Exception as err:
-            _LOGGER.error("Error fetching data: %s", err)
-            raise UpdateFailed(f"Error fetching data: {err}")
-
-
-
-    # Coordinator setup for fetching data periodically
-    coordinator = DataUpdateCoordinator(
-        hass,
-        _LOGGER,
-        name=DOMAIN,
-        update_method=async_update_data,
-        update_interval=timedelta(minutes=update_interval),
-    )
-
-    # Store coordinator and configuration data for access by platforms
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "api_key": api_key,
-        "site_id": site_id,
-    }
-
-    # Perform the initial data fetch
+    coordinator = MdtRwisCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 
-    # Forward entry setups for specified platforms
+    await _async_migrate_sensor_unique_ids(hass, entry, coordinator)
+
+    entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
+
+    _remove_stale_devices(hass, entry, coordinator.site_id)
     return True
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+
+async def async_unload_entry(hass: HomeAssistant, entry: MdtRwisConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def _async_migrate_sensor_unique_ids(
+    hass: HomeAssistant, entry: MdtRwisConfigEntry, coordinator: MdtRwisCoordinator
+) -> None:
+    """Rekey sensors from the GeoJSON feature id to the configured site id.
+
+    Before 2.0 sensor unique_ids used the feature "id" from the payload. If
+    that differs from the siteId stored in the entry, move them so history
+    and entity_ids carry over.
+    """
+    old_prefix = coordinator.data.weather_feature.get("id")
+    if old_prefix is None or str(old_prefix) == coordinator.site_id:
+        return
+    old_prefix = f"{old_prefix}_"
+    new_prefix = f"{coordinator.site_id}_"
+
+    @callback
+    def _update(reg_entry: er.RegistryEntry) -> dict[str, str] | None:
+        if reg_entry.domain != Platform.SENSOR:
+            return None
+        if not reg_entry.unique_id.startswith(old_prefix):
+            return None
+        new_id = new_prefix + reg_entry.unique_id.removeprefix(old_prefix)
+        _LOGGER.debug("Migrating unique_id %s -> %s", reg_entry.unique_id, new_id)
+        return {"new_unique_id": new_id}
+
+    await er.async_migrate_entries(hass, entry.entry_id, _update)
+
+
+@callback
+def _remove_stale_devices(
+    hass: HomeAssistant, entry: MdtRwisConfigEntry, site_id: str
+) -> None:
+    """Drop empty devices left from before sensors and cameras shared one."""
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    for device in dr.async_entries_for_config_entry(dev_reg, entry.entry_id):
+        if (DOMAIN, site_id) in device.identifiers:
+            continue
+        if er.async_entries_for_device(ent_reg, device.id, include_disabled_entities=True):
+            continue
+        dev_reg.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
