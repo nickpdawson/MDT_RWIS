@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "processedTime": 1793030400000,
+  "features": [
+    {"type": "Feature", "id": "53", "geometry": {"type": "Point", "coordinates": [-111.04, 45.68]}, "properties": {"id": "53", "name": "Bozeman Pass"}},
+    {"type": "Feature", "id": "12", "geometry": {"type": "Point", "coordinates": [-112.53, 45.99]}, "properties": {"id": "12", "name": "Homestake Pass"}},
+    {"type": "Feature", "id": "77", "geometry": {"type": "Point", "coordinates": [-110.6, 45.3]}, "properties": {"id": "77", "name": "Bad Pass"}},
+    {"type": "Feature", "id": "564001", "geometry": {"type": "Point", "coordinates": [-111.19, 45.12]}, "properties": {"id": "564001", "name": "Karst"}}
+  ]
+}

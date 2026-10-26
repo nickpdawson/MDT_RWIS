@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "processedTime": 1793051400000,
+  "features": [
+    {
+      "type": "Feature",
+      "id": "564001",
+      "geometry": {"type": "Point", "coordinates": [-111.19, 45.12]},
+      "properties": {
+        "id": "564001",
+        "name": "Karst",
+        "cameras": [
+          {
+            "description": "North Elev 5698",
+            "id": "564010",
+            "image": "https://mdt.mt.gov/other/WebAppData/External/RRS/RWIS/Karst-North-Elev-5698.jpg",
+            "message": null,
+            "name": "Karst - North Elev 5698",
+            "updateTime": 1793051101
+          }
+        ]
+      }
+    }
+  ]
+}

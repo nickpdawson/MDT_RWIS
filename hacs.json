@@ -1,5 +1,5 @@
 {
-  "name": "Montana Dept of Transportation Component",
+  "name": "Montana DOT RWIS",
   "content_in_root": false,
-  "render_readme": true
+  "homeassistant": "2026.10.0"
 }
