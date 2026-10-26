@@ -1,45 +1,78 @@
-# Montana DOT RWIS - Home Assistant Integration
+# Montana DOT RWIS for Home Assistant
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-CC0%201.0-blue.svg)
 
-This Home Assistant custom component integrates the Montana Department of Transportation's (MDT) Road Weather Information System (RWIS) with Home Assistant, allowing users to monitor live weather conditions and access camera feeds at MDT RWIS sites across Montana.
+Road weather readings and camera stills from Montana Department of Transportation (MDT) Road Weather Information System (RWIS) sites.
 
-## Features
+Requires Home Assistant 2026.10 or newer.
 
-- **Real-time Weather Data**: Retrieves atmospheric conditions such as temperature, humidity, wind speed, and more.
-- **Camera Feeds**: Access live camera images for a selected site.
-- **Configurable Update Interval**: Set the frequency of data updates.
+## Get an API key
 
-## Prerequisites
+Email mdtrwis@mt.gov and ask for an ATMS conditions API key. One key covers every site, so you only need one no matter how many sites you add. API reference: https://app.mdt.mt.gov/atms/swagger-ui/index.html
 
-To use this integration, you must obtain an API key from the Montana Department of Transportation:
+## Install
 
-1. **Request API Access**:
-   - Visit the [MDT ATMS Road Weather Service API Documentation](https://app.mdt.mt.gov/atms/swagger-ui/index.html#/atms-rest-controller/getAllCurrentConditions) page.
-   - Submit your contact information to the MDT ATMS Admins via the instructions provided. MDT will contact you with instructions to access the API.
+With HACS:
 
-2. **API Update Timing**:
-   - RWIS data and camera images are collected every 15 minutes from the start of the hour. To avoid receiving unchanged data, stagger API requests accordingly by setting the update interval in the integration settings.
+1. HACS > three-dot menu > Custom repositories.
+2. Add `https://github.com/nickpdawson/MDT_RWIS`, type Integration.
+3. Install "Montana DOT RWIS" and restart Home Assistant.
 
-## Installation
+By hand: copy `custom_components/mdt_rwis` into your config's `custom_components/` folder and restart.
 
-1. **Download the Repository**:
-   Clone or download this repository and place it in your `custom_components` directory under `mdt_rwis`:
-   ```bash
-   custom_components/
-   └── mdt_rwis/
-       ├── __init__.py
-       ├── config_flow.py
-       ├── const.py
-       ├── sensor.py
-       ├── camera.py
-       ├── manifest.json
-       └── ...
-2. **Configure in Home Assistant:**
-In the Home Assistant UI, go to Settings > Devices & Services > Add Integration.
-Search for Montana DOT RWIS and enter your API key obtained from MDT.
+## Set up
 
+Settings > Devices & services > Add integration > Montana DOT RWIS. Enter the key, then pick a site. Add the integration again for each extra site; the key form is prefilled.
 
-3. **Set Update Interval:**
+## Entities
 
-Configure the update interval in the integration settings to match the 15-minute data refresh schedule.
+Each site is one device with these entities:
+
+| Entity | Unit |
+| --- | --- |
+| Air temperature | °F |
+| Dew point | °F |
+| Humidity | % |
+| Wind speed | mph |
+| Wind gust | mph |
+| Wind direction | ° (or a compass label if the site reports text) |
+| Precipitation rate | in/h |
+| Accumulated precipitation | in |
+| Surface temperature | °F |
+| Surface condition | text |
+| One camera per site camera | JPEG still |
+
+Wind gust, accumulated precipitation and the two surface sensors only appear if the site reports them. Home Assistant converts units to your system settings.
+
+## Options
+
+Configure > Update interval: 5 to 60 minutes, default 15. MDT collects new data every 15 minutes from the top of the hour, so polling faster only repeats the same values.
+
+## Troubleshooting
+
+- "Invalid API key" or a reauth prompt: MDT rejected the key. Enter a new one in the reauth form; it is applied to every site that used the old key.
+- Camera stills only refetch when MDT posts a new image.
+- Settings > Devices & services > Montana DOT RWIS > three-dot menu > Download diagnostics gives a payload dump with the key removed. Attach it to issues.
+
+Debug logging:
+
+```yaml
+logger:
+  logs:
+    custom_components.mdt_rwis: debug
+```
+
+Report problems at https://github.com/nickpdawson/MDT_RWIS/issues.
+
+## Breaking changes in 2.0.0
+
+- Files moved to `custom_components/mdt_rwis/`. Manual installs must delete the old files in `custom_components/` and copy the new folder.
+- Home Assistant 2026.10 is the minimum.
+- Sensors and cameras for a site now share one device. The old second device is removed when it is empty.
+- Entity names come from Home Assistant translations, so friendly names change (for example "RWIS Bozeman Pass Temperature" becomes "RWIS Bozeman Pass Air temperature"). Existing entity IDs and history are kept.
+- The update interval moved to the integration's options. Values under 5 minutes are raised to 5.
+- The `mdt_rwis.clear_camera_cache` service is gone. It was never registered.
+
+## License
+
+CC0 1.0 Universal. See [LICENSE](LICENSE).
