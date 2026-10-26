@@ -1,102 +1,122 @@
-"""Camera platform for MDT RWIS integration."""
-from __future__ import annotations
-import logging
-from homeassistant.components.camera import Camera
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+"""Camera platform for the MDT RWIS integration."""
 
-from .const import DOMAIN
+from __future__ import annotations
+
+import asyncio
+import logging
+from typing import Any
+from urllib.parse import urlsplit
+
+from aiohttp import ClientError
+
+from homeassistant.components.camera import Camera
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+from .const import ALLOWED_IMAGE_HOST_SUFFIX, API_TIMEOUT
+from .coordinator import MdtRwisConfigEntry, MdtRwisCoordinator
+from .entity import MdtRwisEntity
 
 _LOGGER = logging.getLogger(__name__)
 
+PARALLEL_UPDATES = 0
+
+
+def is_allowed_image_url(url: Any) -> bool:
+    """Only fetch https images from MDT hosts."""
+    if not isinstance(url, str):
+        return False
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower()
+    return parts.scheme == "https" and (
+        host == ALLOWED_IMAGE_HOST_SUFFIX[1:] or host.endswith(ALLOWED_IMAGE_HOST_SUFFIX)
+    )
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: MdtRwisConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up MDT RWIS cameras."""
-    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
-    
-    cameras = []
-    if coordinator.data:
-        station_data = coordinator.data["cameras"]["features"][0]["properties"]
-        if "cameras" in station_data:
-            station_name = coordinator.data["weather"]["features"][0]["properties"]["name"]
-            for camera in station_data["cameras"]:
-                cameras.append(RWISCamera(
-                    coordinator,
-                    station_data["id"],
-                    camera,
-                    station_name,
-                    hass
-                ))
+    """Set up one camera entity per camera at the site."""
+    coordinator = entry.runtime_data
+    async_add_entities(
+        MdtRwisCamera(coordinator, camera) for camera in coordinator.data.cameras
+    )
 
-    async_add_entities(cameras)
 
-class RWISCamera(CoordinatorEntity, Camera):
-    """MDT RWIS camera entity - static JPEG only."""
+class MdtRwisCamera(MdtRwisEntity, Camera):
+    """Still image from an RWIS site camera."""
 
-    def __init__(self, coordinator, site_id, camera_data, station_name, hass):
-        """Initialize the camera."""
-        CoordinatorEntity.__init__(self, coordinator)
+    def __init__(
+        self, coordinator: MdtRwisCoordinator, camera: dict[str, Any]
+    ) -> None:
+        """Set up the camera."""
+        MdtRwisEntity.__init__(self, coordinator)
         Camera.__init__(self)
-        
-        self.site_id = site_id
-        self._camera_id = camera_data["id"]
-        self._camera_data = camera_data
-        self.hass = hass
-        
-        self._attr_name = camera_data["name"]
+        self._camera_id = camera["id"]
+        self._attr_name = str(camera.get("name") or f"Camera {self._camera_id}")
         self._attr_unique_id = f"rwis_camera_{self._camera_id}"
-        
-        # Device info
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, site_id)},
-            "name": station_name,
-            "manufacturer": "Montana DOT",
-            "model": "RWIS Camera",
-        }
+        self._image: bytes | None = None
+        self._image_time: Any = None
 
-    async def async_camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
-        """Return bytes of camera image."""
-        try:
-            camera_data = self._get_camera_data()
-            if not camera_data:
-                _LOGGER.error("No camera data available")
-                return None
-
-            session = async_get_clientsession(self.hass)
-            async with session.get(camera_data["image"]) as resp:
-                if resp.status == 200:
-                    return await resp.read()
-                _LOGGER.error("Failed to fetch image, status code: %s", resp.status)
-                return None
-        except Exception as err:
-            _LOGGER.error("Error getting camera image: %s", err)
-            return None
-
-    def _get_camera_data(self):
-        """Get camera data from coordinator."""
-        try:
-            station_data = self.coordinator.data["cameras"]["features"][0]["properties"]
-            for camera in station_data.get("cameras", []):
-                if camera["id"] == self._camera_id:
-                    return camera
-        except (KeyError, IndexError) as err:
-            _LOGGER.error("Error accessing camera data: %s", err)
+    def _camera(self) -> dict[str, Any] | None:
+        for camera in self.coordinator.data.cameras:
+            if camera["id"] == self._camera_id:
+                return camera
         return None
 
     @property
-    def extra_state_attributes(self):
-        """Return camera attributes."""
-        camera_data = self._get_camera_data()
-        if camera_data:
-            return {
-                "description": camera_data["description"],
-                "update_time": camera_data["updateTime"],
-                "message": camera_data.get("message"),
-            }
-        return {}
+    def available(self) -> bool:
+        """Unavailable when the site stops listing this camera."""
+        return super().available and self._camera() is not None
+
+    async def async_camera_image(
+        self, width: int | None = None, height: int | None = None
+    ) -> bytes | None:
+        """Return the latest still, fetching only when updateTime changes."""
+        camera = self._camera()
+        if camera is None:
+            return self._image
+
+        update_time = camera.get("updateTime")
+        if self._image is not None and update_time == self._image_time:
+            return self._image
+
+        url = camera.get("image")
+        if not is_allowed_image_url(url):
+            _LOGGER.warning(
+                "Camera %s image URL is not an https *.mt.gov address; skipping",
+                self._camera_id,
+            )
+            return self._image
+
+        session = async_get_clientsession(self.hass)
+        try:
+            async with asyncio.timeout(API_TIMEOUT):
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        _LOGGER.debug(
+                            "Camera %s image fetch returned HTTP %s",
+                            self._camera_id,
+                            resp.status,
+                        )
+                        return self._image
+                    self._image = await resp.read()
+        except (ClientError, TimeoutError) as err:
+            _LOGGER.debug("Camera %s image fetch failed: %s", self._camera_id, err)
+            return self._image
+
+        self._image_time = update_time
+        return self._image
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return camera details from MDT."""
+        camera = self._camera() or {}
+        return {
+            "description": camera.get("description"),
+            "update_time": camera.get("updateTime"),
+            "message": camera.get("message"),
+        }
