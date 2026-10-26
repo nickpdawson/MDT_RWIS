@@ -1,0 +1,33 @@
+{
+  "type": "FeatureCollection",
+  "processedTime": 1793030400000,
+  "features": [
+    {
+      "type": "Feature",
+      "id": "53",
+      "geometry": {"type": "Point", "coordinates": [-111.04, 45.68]},
+      "properties": {
+        "id": "53",
+        "name": "Bozeman Pass",
+        "atmos": [
+          {
+            "airTemperature": {"value": 28.4},
+            "dewpointTemperature": {"value": 20.1},
+            "relativeHumidity": {"value": 71},
+            "windSpeed": {"value": 12},
+            "windGust": {"value": 24},
+            "windDirection": {"value": 270},
+            "precipRate": {"value": 0.02},
+            "precipAccumulated": {"value": 0.15}
+          }
+        ],
+        "surface": [
+          {
+            "surfaceTemperature": {"value": 30.2},
+            "surfaceCondition": {"value": "Wet"}
+          }
+        ]
+      }
+    }
+  ]
+}

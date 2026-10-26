@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "processedTime": 1793030400000,
+  "features": [
+    {
+      "type": "Feature",
+      "id": "53",
+      "geometry": {"type": "Point", "coordinates": [-111.04, 45.68]},
+      "properties": {
+        "id": "53",
+        "name": "Bozeman Pass",
+        "cameras": [
+          {
+            "id": 5301,
+            "name": "Looking east",
+            "description": "I-90 eastbound at the summit",
+            "image": "https://app.mdt.mt.gov/atms/public/camera/5301.jpg",
+            "updateTime": "2026-10-26T12:00:00Z",
+            "message": null
+          }
+        ]
+      }
+    }
+  ]
+}
