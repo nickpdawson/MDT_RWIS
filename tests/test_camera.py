@@ -14,10 +14,9 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from .conftest import load_fixture, mock_api
+from .conftest import IMAGE_URL, load_fixture, mock_api
 
-CAMERA = "camera.rwis_bozeman_pass_looking_east"
-IMAGE_URL = "https://app.mdt.mt.gov/atms/public/camera/5301.jpg"
+CAMERA = "camera.rwis_karst_karst_north_elev_5698"
 
 
 async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> None:
@@ -45,9 +44,7 @@ async def test_image_cached_until_update_time_changes(
     assert _image_calls(aioclient_mock) == 1
 
     images = load_fixture("images.json")
-    images["features"][0]["properties"]["cameras"][0]["updateTime"] = (
-        "2026-10-26T12:15:00Z"
-    )
+    images["features"][0]["properties"]["cameras"][0]["updateTime"] = 1793052001
     coordinator = mock_entry.runtime_data
     aioclient_mock.clear_requests()
     mock_api(aioclient_mock, images=images)

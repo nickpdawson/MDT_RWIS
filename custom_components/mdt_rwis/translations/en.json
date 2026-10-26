@@ -66,6 +66,15 @@
       "precip_accumulated": {
         "name": "Accumulated precipitation"
       },
+      "precip_type": {
+        "name": "Precipitation type"
+      },
+      "precip_intensity": {
+        "name": "Precipitation intensity"
+      },
+      "observation_time": {
+        "name": "Observation time"
+      },
       "surface_temperature": {
         "name": "Surface temperature"
       },

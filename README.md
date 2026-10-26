@@ -38,11 +38,18 @@ Each site is one device with these entities:
 | Wind direction | ° (or a compass label if the site reports text) |
 | Precipitation rate | in/h |
 | Accumulated precipitation | in |
+| Precipitation type | text, for example "No Precipitation" |
+| Precipitation intensity | text |
+| Observation time | timestamp (diagnostic) |
 | Surface temperature | °F |
 | Surface condition | text |
 | One camera per site camera | JPEG still |
 
-Wind gust, accumulated precipitation and the two surface sensors only appear if the site reports them. Home Assistant converts units to your system settings.
+Wind gust, accumulated precipitation, precipitation type and intensity, observation time and the two surface sensors only appear if the site reports them. Home Assistant converts units to your system settings.
+
+Observation time is when the station took the reading, not when Home Assistant polled. If it stops moving, the station has stopped reporting.
+
+Field names were checked against a live payload from site 564001 (Karst, US-191) on 2026-10-26. Karst has no pavement sensors, so the surface field names (`surfaceTemperature`, `surfaceCondition`) are still unverified. If your site has a surface block and those sensors don't appear, attach diagnostics to an issue.
 
 ## Options
 

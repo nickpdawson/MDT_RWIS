@@ -26,7 +26,15 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API_KEY = "test-key"
-SITE_ID = "53"
+# Karst (564001): fixtures site.json and images.json are copied from a live
+# payload captured 2026-10-26. Karst has no surface block, so the
+# Bozeman Pass (53) fixture site_surface.json carries one to keep those
+# sensors tested; its surface field names are unverified.
+SITE_ID = "564001"
+SURFACE_SITE_ID = "53"
+IMAGE_URL = (
+    "https://mdt.mt.gov/other/WebAppData/External/RRS/RWIS/Karst-North-Elev-5698.jpg"
+)
 
 
 def load_fixture(name: str) -> dict[str, Any]:
@@ -46,16 +54,27 @@ def us_units(hass):
     hass.config.units = US_CUSTOMARY_SYSTEM
 
 
-@pytest.fixture
-def mock_entry() -> MockConfigEntry:
+def make_entry(site_id: str, name: str) -> MockConfigEntry:
     """A configured site entry."""
     return MockConfigEntry(
         domain=DOMAIN,
-        title="Montana DOT RWIS - Bozeman Pass",
-        unique_id=f"{DOMAIN}_{SITE_ID}",
-        data={CONF_API_KEY: API_KEY, CONF_SITE_ID: SITE_ID},
+        title=f"Montana DOT RWIS - {name}",
+        unique_id=f"{DOMAIN}_{site_id}",
+        data={CONF_API_KEY: API_KEY, CONF_SITE_ID: site_id},
         options={CONF_UPDATE_INTERVAL: 15},
     )
+
+
+@pytest.fixture
+def mock_entry() -> MockConfigEntry:
+    """Karst, the site with the live-captured payload."""
+    return make_entry(SITE_ID, "Karst")
+
+
+@pytest.fixture
+def surface_entry() -> MockConfigEntry:
+    """Bozeman Pass, the fixture with a surface block."""
+    return make_entry(SURFACE_SITE_ID, "Bozeman Pass")
 
 
 def mock_api(
@@ -79,6 +98,4 @@ def mock_api(
         json=load_fixture("images.json") if images is None else images,
         status=status,
     )
-    aioclient_mock.get(
-        "https://app.mdt.mt.gov/atms/public/camera/5301.jpg", content=b"jpegbytes"
-    )
+    aioclient_mock.get(IMAGE_URL, content=b"jpegbytes")

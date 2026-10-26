@@ -1,30 +1,42 @@
 {
   "type": "FeatureCollection",
-  "processedTime": 1793030400000,
+  "processedTime": 1793051400000,
   "features": [
     {
       "type": "Feature",
-      "id": "53",
-      "geometry": {"type": "Point", "coordinates": [-111.04, 45.68]},
+      "id": "564001",
+      "geometry": {"type": "Point", "coordinates": [-111.19, 45.12]},
       "properties": {
-        "id": "53",
-        "name": "Bozeman Pass",
+        "area": "Bozeman",
+        "description": "Karst US-191 MP 55.3",
+        "id": "564001",
+        "message": null,
+        "mrm": 55.3,
+        "name": "Karst",
+        "route": "US-191",
         "atmos": [
           {
-            "airTemperature": {"value": 28.4},
-            "dewpointTemperature": {"value": 20.1},
-            "relativeHumidity": {"value": 71},
-            "windSpeed": {"value": 12},
-            "windGust": {"value": 24},
-            "windDirection": {"value": 270},
-            "precipRate": {"value": 0.02},
-            "precipAccumulated": {"value": 0.15}
+            "airTemperature": {"units": "Deg F", "value": 55},
+            "dewpointTemperature": {"units": "Deg F", "value": 31},
+            "observationTime": {"units": "Unixtime", "value": 1793051110},
+            "precipAccumulated": {"units": "Inches", "value": null},
+            "precipIntensity": {"units": "Text", "value": "No Precipitation"},
+            "precipRate": {"units": "Inches per Hour", "value": null},
+            "precipType": {"units": "Text", "value": "No Precipitation"},
+            "relativeHumidity": {"units": "Percent", "value": 38},
+            "windDirection": {"units": "Compass Degree", "value": "S/SE"},
+            "windGust": {"units": "Miles per Hour", "value": 11},
+            "windSpeed": {"units": "Miles per Hour", "value": 6}
           }
         ],
-        "surface": [
+        "cameras": [
           {
-            "surfaceTemperature": {"value": 30.2},
-            "surfaceCondition": {"value": "Wet"}
+            "description": "North Elev 5698",
+            "id": "564010",
+            "image": "https://mdt.mt.gov/other/WebAppData/External/RRS/RWIS/Karst-North-Elev-5698.jpg",
+            "message": null,
+            "name": "Karst - North Elev 5698",
+            "updateTime": 1793051101
           }
         ]
       }

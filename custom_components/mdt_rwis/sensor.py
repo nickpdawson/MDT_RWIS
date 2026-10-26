@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 import logging
 from typing import Any
 
@@ -16,6 +17,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     DEGREE,
     PERCENTAGE,
+    EntityCategory,
     UnitOfPrecipitationDepth,
     UnitOfSpeed,
     UnitOfTemperature,
@@ -51,19 +53,32 @@ def _number(value: Any) -> float | None:
         return None
 
 
+def _timestamp(value: Any) -> datetime | None:
+    """Convert MDT's "Unixtime" (seconds, UTC) to a datetime."""
+    seconds = _number(value)
+    if seconds is None:
+        return None
+    try:
+        return datetime.fromtimestamp(seconds, tz=UTC)
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
 @dataclass(frozen=True, kw_only=True)
 class MdtRwisSensorDescription(SensorEntityDescription):
     """Describes one RWIS reading.
 
     unique_suffix keeps the pre-2.0 unique_id tail so history carries over.
     always_create is set for the sensors 1.x always made; the others are only
-    added when the site reports that field.
+    added when the site reports that field. convert, when set, replaces the
+    numeric/text handling of the raw value.
     """
 
     unique_suffix: str
     raw_value: Callable[[SiteData], Any]
     numeric: bool = True
     always_create: bool = False
+    convert: Callable[[Any], Any] | None = None
 
 
 SENSORS: tuple[MdtRwisSensorDescription, ...] = (
@@ -141,6 +156,31 @@ SENSORS: tuple[MdtRwisSensorDescription, ...] = (
         raw_value=lambda d: _reading(d.atmos, "precipAccumulated"),
     ),
     MdtRwisSensorDescription(
+        key="precip_type",
+        translation_key="precip_type",
+        unique_suffix="precip_type",
+        numeric=False,
+        raw_value=lambda d: _reading(d.atmos, "precipType"),
+    ),
+    MdtRwisSensorDescription(
+        key="precip_intensity",
+        translation_key="precip_intensity",
+        unique_suffix="precip_intensity",
+        numeric=False,
+        raw_value=lambda d: _reading(d.atmos, "precipIntensity"),
+    ),
+    MdtRwisSensorDescription(
+        key="observation_time",
+        translation_key="observation_time",
+        unique_suffix="observation_time",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        raw_value=lambda d: _reading(d.atmos, "observationTime"),
+        convert=_timestamp,
+    ),
+    # Surface field names have not been seen in a live payload yet (the one
+    # captured site, Karst, has no surface block). They are a best guess.
+    MdtRwisSensorDescription(
         key="surface_temperature",
         translation_key="surface_temperature",
         unique_suffix="surface_temperature",
@@ -158,8 +198,9 @@ SENSORS: tuple[MdtRwisSensorDescription, ...] = (
     ),
 )
 
-# MDT's payload has no schema, so wind direction may be degrees or a
-# compass label. Pick the entity shape from the first reading.
+# MDT labels windDirection "Compass Degree" but Karst sends a compass label
+# ("S/SE"), so the unit field says nothing about the value type. Pick the
+# entity shape from the first reading.
 WIND_DIRECTION_DEGREES = MdtRwisSensorDescription(
     key="wind_direction",
     translation_key="wind_direction",
@@ -228,6 +269,8 @@ class MdtRwisSensor(MdtRwisEntity, SensorEntity):
         raw = self.entity_description.raw_value(self.coordinator.data)
         if raw is None:
             return None
+        if self.entity_description.convert is not None:
+            return self.entity_description.convert(raw)
         if self.entity_description.numeric:
             return _number(raw)
         return str(raw)

@@ -1,22 +1,22 @@
 {
   "type": "FeatureCollection",
-  "processedTime": 1793030400000,
+  "processedTime": 1793051400000,
   "features": [
     {
       "type": "Feature",
-      "id": "53",
-      "geometry": {"type": "Point", "coordinates": [-111.04, 45.68]},
+      "id": "564001",
+      "geometry": {"type": "Point", "coordinates": [-111.19, 45.12]},
       "properties": {
-        "id": "53",
-        "name": "Bozeman Pass",
+        "id": "564001",
+        "name": "Karst",
         "cameras": [
           {
-            "id": 5301,
-            "name": "Looking east",
-            "description": "I-90 eastbound at the summit",
-            "image": "https://app.mdt.mt.gov/atms/public/camera/5301.jpg",
-            "updateTime": "2026-10-26T12:00:00Z",
-            "message": null
+            "description": "North Elev 5698",
+            "id": "564010",
+            "image": "https://mdt.mt.gov/other/WebAppData/External/RRS/RWIS/Karst-North-Elev-5698.jpg",
+            "message": null,
+            "name": "Karst - North Elev 5698",
+            "updateTime": 1793051101
           }
         ]
       }

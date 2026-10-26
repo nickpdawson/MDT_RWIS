@@ -1,0 +1,36 @@
+{
+  "type": "FeatureCollection",
+  "processedTime": 1793030400000,
+  "features": [
+    {
+      "type": "Feature",
+      "id": "53",
+      "geometry": {"type": "Point", "coordinates": [-111.04, 45.68]},
+      "properties": {
+        "id": "53",
+        "name": "Bozeman Pass",
+        "atmos": [
+          {
+            "airTemperature": {"units": "Deg F", "value": 28.4},
+            "dewpointTemperature": {"units": "Deg F", "value": 20.1},
+            "observationTime": {"units": "Unixtime", "value": 1793030100},
+            "precipAccumulated": {"units": "Inches", "value": 0.15},
+            "precipIntensity": {"units": "Text", "value": "Light"},
+            "precipRate": {"units": "Inches per Hour", "value": 0.02},
+            "precipType": {"units": "Text", "value": "Snow"},
+            "relativeHumidity": {"units": "Percent", "value": 71},
+            "windDirection": {"units": "Compass Degree", "value": 270},
+            "windGust": {"units": "Miles per Hour", "value": 24},
+            "windSpeed": {"units": "Miles per Hour", "value": 12}
+          }
+        ],
+        "surface": [
+          {
+            "surfaceTemperature": {"units": "Deg F", "value": 30.2},
+            "surfaceCondition": {"units": "Text", "value": "Wet"}
+          }
+        ]
+      }
+    }
+  ]
+}

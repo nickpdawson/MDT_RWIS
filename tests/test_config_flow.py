@@ -41,7 +41,7 @@ async def test_user_to_site(
     assert result["step_id"] == "site"
     selector = result["data_schema"].schema[CONF_SITE_ID]
     labels = [opt["label"] for opt in selector.config["options"]]
-    assert labels == ["Bad Pass", "Bozeman Pass", "Homestake Pass"]
+    assert labels == ["Bad Pass", "Bozeman Pass", "Homestake Pass", "Karst"]
 
     # The key goes in the query string, never in a hand-built URL.
     _, url, _, _ = aioclient_mock.mock_calls[0]
@@ -51,7 +51,7 @@ async def test_user_to_site(
         result["flow_id"], {CONF_SITE_ID: SITE_ID}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Montana DOT RWIS - Bozeman Pass"
+    assert result["title"] == "Montana DOT RWIS - Karst"
     assert result["data"] == {CONF_API_KEY: API_KEY, CONF_SITE_ID: SITE_ID}
     assert result["options"] == {CONF_UPDATE_INTERVAL: 15}
     assert result["result"].unique_id == f"{DOMAIN}_{SITE_ID}"
