@@ -1,22 +1,77 @@
 {
-    "config": {
-        "step": {
-            "user": {
-                "title": "Montana DOT RWIS",
-                "description": "Set up Montana DOT Road Weather Information System. Enter your API key.",
-                "data": {
-                    "api_key": "API Key",
-                    "update_interval": "Update Interval (minutes)"
-                }
-            }
-        },
-        "error": {
-            "cannot_connect": "Failed to connect to API. Please verify your API key and internet connection.",
-            "invalid_auth": "Invalid API key",
-            "unknown": "Unexpected error"
-        },
-        "abort": {
-            "already_configured": "MDT RWIS is already configured"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Montana DOT RWIS",
+        "description": "Enter your MDT API key. One key works for every site. To get a key, email mdtrwis@mt.gov.",
+        "data": {
+          "api_key": "API key"
         }
+      },
+      "site": {
+        "title": "Choose a site",
+        "description": "Pick the RWIS site to add. Add the integration again for more sites.",
+        "data": {
+          "site_id": "Site"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update API key",
+        "description": "MDT rejected the API key for {site}. Enter a new key. It is also applied to other sites that used the old key.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the MDT API. Check your connection and try again.",
+      "invalid_auth": "MDT rejected this API key. Check the key and try again.",
+      "no_sites": "The API returned no sites for this key.",
+      "unknown": "Unexpected error. Check the Home Assistant log for details."
+    },
+    "abort": {
+      "already_configured": "This site is already set up.",
+      "no_unconfigured_sites": "Every site this key can see is already set up.",
+      "reauth_successful": "API key updated."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Montana DOT RWIS options",
+        "description": "MDT collects new data every 15 minutes.",
+        "data": {
+          "update_interval": "Update interval (minutes)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "air_temperature": {
+        "name": "Air temperature"
+      },
+      "dew_point": {
+        "name": "Dew point"
+      },
+      "wind_gust": {
+        "name": "Wind gust"
+      },
+      "wind_direction": {
+        "name": "Wind direction"
+      },
+      "precip_rate": {
+        "name": "Precipitation rate"
+      },
+      "precip_accumulated": {
+        "name": "Accumulated precipitation"
+      },
+      "surface_temperature": {
+        "name": "Surface temperature"
+      },
+      "surface_condition": {
+        "name": "Surface condition"
+      }
+    }
+  }
 }
